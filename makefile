@@ -8,7 +8,8 @@ RESET  := $(shell tput -Txterm sgr0)
 GOROOT=$(shell go env GOROOT)
 GOCMD=go
 GOCLEAN=$(GOCMD) clean
-GOFMT=$(GOCMD) fmt
+# GOFMT=$(GOCMD) fmt
+GOFMT=gofumpt -l -w
 GOGENERATE=$(GOCMD) generate
 GOBUILD=$(GOCMD) build -mod=vendor
 GOTEST=$(GOCMD) test
@@ -64,7 +65,7 @@ all: help
 clean: # 清理构筑环境
 	$(GOCLEAN)
 format: # 格式化代码
-	$(GOFMT) ./...
+	$(GOFMT) .
 mod: ## 整理vendor依赖包
 	$(GOCMD) mod tidy
 	$(GOCMD) mod vendor

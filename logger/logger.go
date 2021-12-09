@@ -14,7 +14,6 @@ type LoggerProvider struct {
 
 // InitLogger 初始化Log部品
 func NewLogger(level string, serviceName string) *LoggerProvider {
-
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 	l := &LoggerProvider{}
