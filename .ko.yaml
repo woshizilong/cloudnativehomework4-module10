@@ -1,0 +1,65 @@
+# 基础镜像
+# 默认镜像 defaultBaseImage: gcr.io/distroless/static:nonroot
+defaultBaseImage: kabacloud/alpine:3.14-curl
+
+# WorkingDirectory 允许设置调用`go` 工具的工作目录。空字符串表示当前工作目录。
+workingDirectory: "."
+
+# 并发构建。默认值为 0
+#    设为0时会重设为 runtime.GOMAXPROCS(0)。
+#     runtime.GOMAXPROCS(逻辑CPU数量)
+#         这里的逻辑CPU数量可以有如下几种数值：
+#            <1：不修改任何数值。
+#            =1：单核心执行。
+#            >1：多核并发执行。
+#     一般情况下，可以使用 runtime.NumCPU() 查询 CPU 数量，并使用 runtime.GOMAXPROCS() 函数进行设置
+# concurrentBuilds: 0
+
+# 优化开关。默认值为 false
+# disableOptimizations: false
+
+# 交叉编译平台。默认值为 linux/amd64
+# platform: "linux/amd64,linux/arm64"
+
+# 镜像标签
+# labels:
+#   - owner=e0050
+#   - tektonkind=interceptor
+
+# 推送编译镜像到镜像仓库时，可以覆盖http请求头的user-agent
+# userAgent: ""
+
+# 不安全的镜像仓库
+# insecureRegistry: false
+
+# 可以针对个别 App 指定基础镜像
+baseImageOverrides:
+  github.com/kabacloud/cloudnativehomework4-module10: kabacloud/alpine:3.14-rsync-sshpass
+
+# ko使用gorelease进行编译，如下的编译配置是已经接入到ko的，其他gorelease的配置项是无用的。
+builds:
+  github.com/kabacloud/cloudnativehomework4-module10:
+    # 标识ID，任意
+    id: httpserver
+
+    # ko编译依托gorelese进行编译，但是gorelese可用的配置字段binary(编译输出的二进制应用名)没有被ko采用，ko默认用main.go所处的包名作为二进制名
+    # binary: program
+
+    # 执行编译的目录，默认值是[.]。
+    dir: .
+
+    # main函数所在的文件
+    main: ./main.go
+
+    # 编译时的环境变量
+    # env:
+    #   - KO_VERSION={{.Env.KO_VERSION}}
+    
+    # go build 编译的flag
+    flags:
+      - -mod=vendor
+    
+    # go build 编译的ldflag。 -X 无法起效，改为使用环境变量GOFLAGS的方式。但是此方式对APP时配置不太友好。
+    # ldflags:
+    #   - -s -w
+    #   - -X github.com/kabacloud/cloudnativehomework4-module10/environment.CommitID=xyz

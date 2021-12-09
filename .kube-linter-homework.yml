@@ -1,0 +1,8 @@
+# kube-linter 的默认配置文件。参考 https://docs.kubelinter.io/#/configuring-kubelinter
+
+# 默认检查
+checks:
+  # 执行所有默认检查
+  addAllBuiltIn: true
+  exclude:
+    - "required-annotation-email"
