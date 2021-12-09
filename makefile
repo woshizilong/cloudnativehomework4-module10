@@ -69,7 +69,7 @@ format: # 格式化代码
 mod: ## 整理vendor依赖包
 	$(GOCMD) mod tidy
 	$(GOCMD) mod vendor
-build: clean ## 编译应用
+build: clean format ## 编译应用
 	$(GOBUILD) -o $(BINARY_NAME) -v $(LDFLAGs)
 ut: build ## 单元测试并生成测试报告
 	$(GOTEST) -v -test.run TestUnit_ -coverprofile=coverUnit.out ./...
