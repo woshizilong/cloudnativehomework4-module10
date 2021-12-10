@@ -1,3 +1,4 @@
+# 第一步创建命名空间 `kubectl create namespace homework-woshizilong`
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -9,11 +10,10 @@ kind: Role
 metadata:
   name: httpserver-role
 rules:
-- apiGroups: [""]
-# configmaps is needed for updating logging config
-  resources: ["configmaps"]
-  verbs: ["get", "list", "watch"]
-
+  - apiGroups: [""]
+    # configmaps is needed for updating logging config
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -21,16 +21,13 @@ metadata:
   name: httpserver-rolebinding
   namespace: homework-woshizilong
 subjects:
-- kind: ServiceAccount
-  name: httpserver-sa
+  - kind: ServiceAccount
+    name: httpserver-sa
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: httpserver-role
 ---
-
-
-
 apiVersion: v1
 kind: Secret
 metadata:
@@ -52,10 +49,63 @@ metadata:
     app: httpserver
 data:
   test.phase: okteto
-
 ---
-# okteto用户没有配置NetworkPolicy的权限
-
+# httpserver网络环境配置
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: homework-woshizilong
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# 允许标记networking/allow-internet-access为true的pod接收来自internet的请求流量
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: internet-access
+  namespace: homework-woshizilong
+spec:
+  podSelector:
+    matchLabels:
+      networking/allow-internet-access: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}
+---
+# 允许同一namespace下的pod之间通过网络访问
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: homework-woshizilong
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# 允许标记networking/allow-db-access为true的pod访问标记app=db的pod
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-db-access
+spec:
+  podSelector:
+    matchLabels:
+      app: "db"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              networking/allow-db-access: "true"
 ---
 # httpserver部署配置
 apiVersion: apps/v1
@@ -75,8 +125,8 @@ spec:
       app: httpserver
   strategy:
     type: RollingUpdate
-    rollingUpdate:  ##由于replicas为3,则整个升级,pod个数在2-4个之间
-      maxSurge: 1      #滚动升级时会先启动1个pod
+    rollingUpdate: ##由于replicas为3,则整个升级,pod个数在2-4个之间
+      maxSurge: 1 #滚动升级时会先启动1个pod
       maxUnavailable: 1 #滚动升级时允许的最大Unavailable的pod个数
   template:
     metadata:
@@ -86,24 +136,26 @@ spec:
         owner: e0050
       annotations:
         email: kaba-tech@outlook.com
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
     spec:
       serviceAccountName: httpserver-sa
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app: httpserver
-              topologyKey: kubernetes.io/hostname # 基于node的hostname设定反亲和性，目的是避免pod调度到同一个node上。
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: httpserver
+                topologyKey: kubernetes.io/hostname # 基于node的hostname设定反亲和性，目的是避免pod调度到同一个node上。
       initContainers:
         - name: init-myservice
           image: busybox:1.28
           command: ['sh', '-c', 'echo The app is running! && sleep 30']
       containers:
         # kabacloud/httpserver:v0.0.2
-        - image: "ko://github.com/kabacloud/cloudnativehomework4-module10"
+        - image: "kabacloud/cloudnativehomework4-module10-b36665c250c1b9afa19d61dc3f4aff14@sha256:fb98a6ea950a888cfb83945ef8b367d18f0dbc20b6a5d8f5bc3d537685037ba9"
           name: httpserver
           securityContext:
             readOnlyRootFilesystem: true
@@ -136,8 +188,8 @@ spec:
               path: /healthz
               port: liveness-port
               httpHeaders:
-              - name: VERSION
-                value: Awesome
+                - name: VERSION
+                  value: Awesome
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 30
@@ -147,8 +199,8 @@ spec:
               path: /readyz
               port: liveness-port
               httpHeaders:
-              - name: VERSION
-                value: Awesome
+                - name: VERSION
+                  value: Awesome
             initialDelaySeconds: 15
             periodSeconds: 5
             timeoutSeconds: 30
@@ -169,9 +221,11 @@ metadata:
   annotations:
     dev.okteto.com/auto-ingress: "true"
 spec:
-  type: ClusterIP 
+  type: ClusterIP
   ports:
-  - name: httpserver
-    port: 8000 # 抽象的 Service 端口，可以使任何其它 Pod 访问该 Service 的端口
+    - name: httpserver
+      port: 8000 # 抽象的 Service 端口，可以使任何其它 Pod 访问该 Service 的端口
   selector:
     app: httpserver # 具有 app=httpserver 标签的 pod 都属于该服务
+
+---

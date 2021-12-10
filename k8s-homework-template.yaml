@@ -1,3 +1,4 @@
+# 第一步创建命名空间 `kubectl create namespace homework-woshizilong`
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -140,6 +141,8 @@ spec:
         owner: e0050
       annotations:
         email: kaba-tech@outlook.com
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
     spec:
       serviceAccountName: httpserver-sa
       affinity:
@@ -181,7 +184,7 @@ spec:
             - name: secret-volume
               mountPath: /etc/secret-volume
           command: ["/sbin/tini", "--"]
-          args: ["/ko-app/cloudnativehomework3-module8", "serve"]
+          args: ["/ko-app/cloudnativehomework4-module10", "serve"]
           ports:
             - name: liveness-port
               containerPort: 8000
